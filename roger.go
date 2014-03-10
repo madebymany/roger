@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"time"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
@@ -16,7 +16,7 @@ var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var cmdStr = flag.String("cmd", "", "command to run")
 
 type timeSpec struct {
-	every int
+	every     int
 	instances []int
 }
 
@@ -41,7 +41,7 @@ func main() {
 	for {
 		now := time.Now()
 
-		if now.Second() != 0 || (now.Minute() % minSpec.every) != 0 {
+		if now.Second() != 0 || (now.Minute()%minSpec.every) != 0 {
 			goto WaitContinue
 		}
 
@@ -77,7 +77,7 @@ func main() {
 
 		cmd.Run()
 
-WaitContinue:
+	WaitContinue:
 		time.Sleep(time.Second)
 	}
 }
