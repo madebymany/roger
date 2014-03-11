@@ -33,51 +33,20 @@ func main() {
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
 
-	var found bool
 	cmd := exec.Command("/bin/sh", "-c", *cmdStr)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
+	var now time.Time
 	for {
-		now := time.Now()
+		now = time.Now()
 
-		if now.Second() != 0 || (now.Minute()%minSpec.every) != 0 {
-			goto WaitContinue
+		if now.Second() == 0 && minSpec.matches(now.Minute()) &&
+			hourSpec.matches(now.Hour()) {
+
+			cmd.Run()
 		}
 
-		if minSpec.instances != nil {
-			found = false
-			for _, min := range minSpec.instances {
-				if now.Minute() == min {
-					found = true
-					break
-				}
-			}
-			if !found {
-				goto WaitContinue
-			}
-		}
-
-		if (now.Hour() % hourSpec.every) != 0 {
-			goto WaitContinue
-		}
-
-		if hourSpec.instances != nil {
-			found = false
-			for _, hour := range hourSpec.instances {
-				if now.Hour() == hour {
-					found = true
-					break
-				}
-			}
-			if !found {
-				goto WaitContinue
-			}
-		}
-
-		cmd.Run()
-
-	WaitContinue:
 		time.Sleep(time.Second)
 	}
 }
@@ -112,4 +81,20 @@ func parseTimeSpec(in string) (out timeSpec) {
 		log.Fatalf("Invalid spec: '%s'\n", in)
 	}
 	return
+}
+
+func (self timeSpec) matches(moment int) bool {
+	if (moment % self.every) != 0 {
+		return false
+	}
+
+	if self.instances == nil {
+		return true
+	}
+	for _, i := range self.instances {
+		if moment == i {
+			return true
+		}
+	}
+	return false
 }
