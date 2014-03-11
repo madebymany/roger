@@ -13,7 +13,7 @@ import (
 
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
-var cmdStr = flag.String("cmd", "", "command to run")
+var inShell = flag.Bool("shell", false, "Run command in a shell")
 
 type timeSpec struct {
 	every     int
@@ -26,14 +26,19 @@ func main() {
 	log.SetFlags(0)
 	flag.Parse()
 
-	if *cmdStr == "" {
+	if len(flag.Args()) == 0 {
 		log.Fatalln("Command cannot be empty")
 	}
 
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
 
-	cmd := exec.Command("/bin/sh", "-c", *cmdStr)
+	var cmd *exec.Cmd
+	if *inShell {
+		cmd = exec.Command("/bin/sh", "-c", flag.Args()[0])
+	} else {
+		cmd = exec.Command(flag.Args()[0], flag.Args()[1:]...)
+	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
@@ -44,6 +49,7 @@ func main() {
 		if now.Second() == 0 && minSpec.matches(now.Minute()) &&
 			hourSpec.matches(now.Hour()) {
 
+			// TODO: catch error and report somehow
 			cmd.Run()
 		}
 
