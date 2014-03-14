@@ -1,0 +1,7 @@
+software_groups: &software
+  - "base"
+jobs:
+  roger:
+    builder: "golang"
+    base: "ubuntu:12.04"
+    software_groups: *software
