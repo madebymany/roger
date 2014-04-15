@@ -5,3 +5,11 @@ jobs:
     builder: "golang"
     base: "ubuntu:12.04"
     software_groups: *software
+    packages:
+      - type: debian
+        name: roger
+        depends: 
+          - libc6
+        target: install
+        repos:
+          - mxm
