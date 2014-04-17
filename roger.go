@@ -14,6 +14,7 @@ import (
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
+var cmdCwd = flag.String("cwd", "", "Change working directory for command")
 var shouldExitFile = flag.String("exitfile", "/var/run/roger-exit",
 	"File to watch for changes to signal exit")
 
@@ -43,6 +44,7 @@ func main() {
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Dir = *cmdCwd
 
 	var now time.Time
 	oldShouldExitTime := getShouldExitTime()
