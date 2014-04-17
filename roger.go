@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -33,9 +32,6 @@ func main() {
 
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
-
-	fmt.Printf("minSpec: %#v\n", minSpec)
-	fmt.Printf("hourSpec: %#v\n", hourSpec)
 
 	var cmd *exec.Cmd
 	if *inShell {
