@@ -14,6 +14,8 @@ import (
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
+var shouldExitFile = flag.String("exitfile", "/var/run/roger-exit",
+	"File to watch for changes to signal exit")
 
 type timeSpec struct {
 	every     int
@@ -43,6 +45,8 @@ func main() {
 	cmd.Stderr = os.Stderr
 
 	var now time.Time
+	oldShouldExitTime := getShouldExitTime()
+	var shouldExitTime time.Time
 	for {
 		now = time.Now()
 
@@ -53,6 +57,10 @@ func main() {
 			cmd.Run()
 		}
 
+		shouldExitTime = getShouldExitTime()
+		if shouldExitTime.After(oldShouldExitTime) {
+			break
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -123,6 +131,14 @@ func mustAtoi(s string) (n int) {
 	n, err := strconv.Atoi(s)
 	if err != nil {
 		panic(err)
+	}
+	return
+}
+
+func getShouldExitTime() (exitTime time.Time) {
+	fi, err := os.Stat(*shouldExitFile)
+	if (err == nil) {
+		exitTime = fi.ModTime()
 	}
 	return
 }
