@@ -13,6 +13,7 @@ import (
 
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
+var dowSpecStr = flag.String("dow", "*", "cron-style day-of-week spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
 var cmdCwd = flag.String("cwd", "", "Change working directory for command")
 var shouldExitFile = flag.String("exitfile", "/var/run/roger-exit",
@@ -35,6 +36,7 @@ func main() {
 
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
+	dowSpec := parseTimeSpec(*dowSpecStr)
 
 	var cmd *exec.Cmd
 	if *inShell {
@@ -52,8 +54,10 @@ func main() {
 	for {
 		now = time.Now()
 
-		if now.Second() == 0 && minSpec.matches(now.Minute()) &&
-			hourSpec.matches(now.Hour()) {
+		if now.Second() == 0 &&
+			minSpec.matches(now.Minute()) &&
+			hourSpec.matches(now.Hour()) &&
+			dowSpec.matches(int(now.Weekday())) {
 
 			// TODO: catch error and report somehow
 			cmd.Run()
