@@ -8,8 +8,8 @@ jobs:
     packages:
       - type: debian
         name: roger
-        depends: 
+        depends:
           - libc6
         target: install
         repos:
-          - mxm
+          - mxm-public
