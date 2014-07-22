@@ -11,12 +11,14 @@ import (
 	"time"
 )
 
+const DefaultShouldExitFile = "/var/run/roger-exit"
+
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var dowSpecStr = flag.String("dow", "*", "cron-style day-of-week spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
 var cmdCwd = flag.String("cwd", "", "Change working directory for command")
-var shouldExitFile = flag.String("exitfile", "/var/run/roger-exit",
+var shouldExitFile = flag.String("exitfile", DefaultShouldExitFile,
 	"File to watch for changes to signal exit")
 
 type timeSpec struct {
@@ -47,6 +49,13 @@ func main() {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Dir = *cmdCwd
+	if envCmdDir := os.Getenv("ROGER_CWD"); cmd.Dir == "" {
+		cmd.Dir = envCmdDir
+	}
+
+	if envShouldExitFile := os.Getenv("ROGER_SHOULD_EXIT_FILE"); *shouldExitFile == DefaultShouldExitFile {
+		shouldExitFile = &envShouldExitFile
+	}
 
 	var now time.Time
 	oldShouldExitTime := getShouldExitTime()
