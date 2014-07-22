@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -12,9 +11,15 @@ import (
 	"time"
 )
 
+const DefaultShouldExitFile = "/var/run/roger-exit"
+
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
+var dowSpecStr = flag.String("dow", "*", "cron-style day-of-week spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
+var cmdCwd = flag.String("cwd", "", "Change working directory for command")
+var shouldExitFile = flag.String("exitfile", DefaultShouldExitFile,
+	"File to watch for changes to signal exit")
 
 type timeSpec struct {
 	every     int
@@ -33,9 +38,7 @@ func main() {
 
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
-
-	fmt.Printf("minSpec: %#v\n", minSpec)
-	fmt.Printf("hourSpec: %#v\n", hourSpec)
+	dowSpec := parseTimeSpec(*dowSpecStr)
 
 	var cmd *exec.Cmd
 	if *inShell {
@@ -45,18 +48,34 @@ func main() {
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Dir = *cmdCwd
+	if envCmdDir := os.Getenv("ROGER_CWD"); cmd.Dir == "" {
+		cmd.Dir = envCmdDir
+	}
+
+	if envShouldExitFile := os.Getenv("ROGER_SHOULD_EXIT_FILE"); *shouldExitFile == DefaultShouldExitFile {
+		shouldExitFile = &envShouldExitFile
+	}
 
 	var now time.Time
+	oldShouldExitTime := getShouldExitTime()
+	var shouldExitTime time.Time
 	for {
 		now = time.Now()
 
-		if now.Second() == 0 && minSpec.matches(now.Minute()) &&
-			hourSpec.matches(now.Hour()) {
+		if now.Second() == 0 &&
+			minSpec.matches(now.Minute()) &&
+			hourSpec.matches(now.Hour()) &&
+			dowSpec.matches(int(now.Weekday())) {
 
 			// TODO: catch error and report somehow
 			cmd.Run()
 		}
 
+		shouldExitTime = getShouldExitTime()
+		if shouldExitTime.After(oldShouldExitTime) {
+			break
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -127,6 +146,14 @@ func mustAtoi(s string) (n int) {
 	n, err := strconv.Atoi(s)
 	if err != nil {
 		panic(err)
+	}
+	return
+}
+
+func getShouldExitTime() (exitTime time.Time) {
+	fi, err := os.Stat(*shouldExitFile)
+	if (err == nil) {
+		exitTime = fi.ModTime()
 	}
 	return
 }
