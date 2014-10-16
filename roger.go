@@ -5,20 +5,20 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
-
-const DefaultShouldExitFile = "/var/run/roger-exit"
 
 var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var dowSpecStr = flag.String("dow", "*", "cron-style day-of-week spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
 var cmdCwd = flag.String("cwd", "", "Change working directory for command")
-var shouldExitFile = flag.String("exitfile", DefaultShouldExitFile,
+var shouldExitFile = flag.String("exitfile", "",
 	"File to watch for changes to signal exit")
 
 type timeSpec struct {
@@ -40,13 +40,16 @@ func main() {
 	hourSpec := parseTimeSpec(*hourSpecStr)
 	dowSpec := parseTimeSpec(*dowSpecStr)
 
-	if envShouldExitFile := os.Getenv("ROGER_SHOULD_EXIT_FILE"); *shouldExitFile == DefaultShouldExitFile {
-		shouldExitFile = &envShouldExitFile
+	if *shouldExitFile != "" {
+		log.Println("warning: -exitfile is deprecated. Use 'pkill -x roger' instead.")
 	}
 
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, syscall.SIGUSR1)
+
 	var now time.Time
-	oldShouldExitTime := getShouldExitTime()
-	var shouldExitTime time.Time
+
+CheckLoop:
 	for {
 		now = time.Now()
 
@@ -72,11 +75,12 @@ func main() {
 			cmd.Run()
 		}
 
-		shouldExitTime = getShouldExitTime()
-		if shouldExitTime.After(oldShouldExitTime) {
-			break
+		select {
+		case _ = <-time.After(time.Second):
+			// loop
+		case _ = <-signals:
+			break CheckLoop
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -112,7 +116,7 @@ func parseTimeSpec(in string) (out timeSpec) {
 			switch len(rangeSplit) {
 			case 1:
 				out.instances = append(out.instances,
-				mustAtoi(rangeSplit[0]))
+					mustAtoi(rangeSplit[0]))
 			case 2:
 				from, to := mustAtoi(rangeSplit[0]), mustAtoi(rangeSplit[1])
 				for i := from; i <= to; i++ {
@@ -146,14 +150,6 @@ func mustAtoi(s string) (n int) {
 	n, err := strconv.Atoi(s)
 	if err != nil {
 		panic(err)
-	}
-	return
-}
-
-func getShouldExitTime() (exitTime time.Time) {
-	fi, err := os.Stat(*shouldExitFile)
-	if (err == nil) {
-		exitTime = fi.ModTime()
 	}
 	return
 }
