@@ -40,19 +40,6 @@ func main() {
 	hourSpec := parseTimeSpec(*hourSpecStr)
 	dowSpec := parseTimeSpec(*dowSpecStr)
 
-	var cmd *exec.Cmd
-	if *inShell {
-		cmd = exec.Command("/bin/sh", "-c", flag.Args()[0])
-	} else {
-		cmd = exec.Command(flag.Args()[0], flag.Args()[1:]...)
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Dir = *cmdCwd
-	if envCmdDir := os.Getenv("ROGER_CWD"); cmd.Dir == "" {
-		cmd.Dir = envCmdDir
-	}
-
 	if envShouldExitFile := os.Getenv("ROGER_SHOULD_EXIT_FILE"); *shouldExitFile == DefaultShouldExitFile {
 		shouldExitFile = &envShouldExitFile
 	}
@@ -67,6 +54,19 @@ func main() {
 			minSpec.matches(now.Minute()) &&
 			hourSpec.matches(now.Hour()) &&
 			dowSpec.matches(int(now.Weekday())) {
+
+			var cmd *exec.Cmd
+			if *inShell {
+				cmd = exec.Command("/bin/sh", "-c", flag.Args()[0])
+			} else {
+				cmd = exec.Command(flag.Args()[0], flag.Args()[1:]...)
+			}
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Dir = *cmdCwd
+			if envCmdDir := os.Getenv("ROGER_CWD"); cmd.Dir == "" {
+				cmd.Dir = envCmdDir
+			}
 
 			// TODO: catch error and report somehow
 			cmd.Run()
