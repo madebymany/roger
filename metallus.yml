@@ -1,5 +1,11 @@
 software_groups: &software
   - "base"
+
+packages:
+  branch_codenames:
+    master: unstable
+    production: stable
+
 jobs:
   roger:
     builder: "golang"
