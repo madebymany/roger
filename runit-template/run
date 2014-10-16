@@ -1,0 +1,4 @@
+#!/bin/sh
+
+exec 2>&1
+exec roger -exitfile=/var/run/roger-exit -minutes 0 -hours 3 cmd
