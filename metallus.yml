@@ -13,3 +13,5 @@ jobs:
         target: install
         repos:
           - mxm-public
+        activates:
+          - roger-upgrade
