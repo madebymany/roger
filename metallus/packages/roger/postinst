@@ -1,4 +1,4 @@
 #!/bin/sh
 set -e
 
-pkill -USR1 -x roger
+pkill -USR1 -x roger || [ $? -eq "1" ] && true
