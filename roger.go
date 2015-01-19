@@ -17,6 +17,7 @@ var minSpecStr = flag.String("mins", "*", "cron-style minute spec")
 var hourSpecStr = flag.String("hours", "*", "cron-style hour spec")
 var dowSpecStr = flag.String("dow", "*", "cron-style day-of-week spec")
 var inShell = flag.Bool("shell", false, "Run command in a shell")
+var exitScript = flag.String("exitscript", "", "Script to run when process exits")
 var cmdCwd = flag.String("cwd", "", "Change working directory for command")
 var shouldExitFile = flag.String("exitfile", "",
 	"File to watch for changes to signal exit")
@@ -39,6 +40,10 @@ func main() {
 	minSpec := parseTimeSpec(*minSpecStr)
 	hourSpec := parseTimeSpec(*hourSpecStr)
 	dowSpec := parseTimeSpec(*dowSpecStr)
+
+	if envCmdDir := os.Getenv("ROGER_CWD"); *cmdCwd == "" {
+		*cmdCwd = envCmdDir
+	}
 
 	if *shouldExitFile != "" {
 		log.Println("warning: -exitfile is deprecated. Use 'pkill -x roger' instead.")
@@ -67,12 +72,12 @@ CheckLoop:
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Dir = *cmdCwd
-			if envCmdDir := os.Getenv("ROGER_CWD"); cmd.Dir == "" {
-				cmd.Dir = envCmdDir
-			}
 
 			// TODO: catch error and report somehow
 			cmd.Run()
+			if *exitScript != "" {
+				execExitScript(cmd.ProcessState.Success())
+			}
 		}
 
 		select {
@@ -81,6 +86,21 @@ CheckLoop:
 		case _ = <-signals:
 			break CheckLoop
 		}
+	}
+}
+
+func execExitScript(success bool) {
+	status := 1
+	if success {
+		status = 0
+	}
+
+	exitCmd := exec.Command(*exitScript, strconv.Itoa(status))
+	exitCmd.Dir = *cmdCwd
+
+	err := exitCmd.Run()
+	if err != nil {
+		log.Printf("exit script error: %s", err)
 	}
 }
 
