@@ -3,8 +3,8 @@ software_groups: &software
 
 packages:
   branch_codenames:
-    master: unstable
-    production: stable
+    master: trusty-unstable
+    production: trusty-stable
 
 jobs:
   roger:
