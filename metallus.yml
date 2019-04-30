@@ -3,13 +3,13 @@ software_groups: &software
 
 packages:
   branch_codenames:
-    master: trusty-unstable
-    production: trusty-stable
+    master: bionic-unstable
+    production: bionic-stable
 
 jobs:
   roger:
     builder: "golang"
-    base: "ubuntu:12.04"
+    base: "quay.io/madebymany/build-bases:bionic"
     software_groups: *software
     packages:
       - type: debian
