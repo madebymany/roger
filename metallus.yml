@@ -3,13 +3,13 @@ software_groups: &software
 
 packages:
   branch_codenames:
-    master: bionic-unstable
-    production: bionic-stable
+    master: focal-unstable
+    production: focal-stable
 
 jobs:
   roger:
     builder: "golang"
-    base: "quay.io/madebymany/build-bases:bionic"
+    base: "quay.io/madebymany/build-bases:focal"
     software_groups: *software
     packages:
       - type: debian
